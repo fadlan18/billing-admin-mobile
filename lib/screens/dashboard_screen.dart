@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'invoice_list_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -31,6 +32,17 @@ class DashboardScreen extends StatelessWidget {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(user?.role ?? ''),
+            const SizedBox(height: 32),
+            FilledButton.icon(
+              icon: const Icon(Icons.receipt_long),
+              label: const Text('Lihat Daftar Invoice'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const InvoiceListScreen()),
+                );
+              },
+            ),
           ],
         ),
       ),
