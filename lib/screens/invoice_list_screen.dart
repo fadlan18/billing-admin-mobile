@@ -5,6 +5,11 @@ import '../services/api_client.dart';
 import '../services/invoice_service.dart';
 import 'invoice_detail_screen.dart';
 
+const _primaryColor = Color(0xFF1E3A8A);
+const _textDark = Color(0xFF111827);
+const _textMedium = Color(0xFF4B5563);
+const _textLight = Color(0xFF9CA3AF);
+
 class InvoiceListScreen extends StatefulWidget {
   const InvoiceListScreen({super.key});
 
@@ -63,91 +68,232 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
     )}';
   }
 
+  String _formatDate(DateTime dt) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
+
   Color _statusColor(String status) {
     switch (status) {
       case 'paid':
-        return Colors.green;
+        return const Color(0xFF059669);
       case 'unpaid':
-        return Colors.orange;
+        return const Color(0xFFD97706);
       case 'pending_confirmation':
-        return Colors.blue;
+        return const Color(0xFF2563EB);
       case 'cancelled':
-        return Colors.red;
+        return const Color(0xFFDC2626);
       default:
         return Colors.grey;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'paid':
+        return 'Lunas';
+      case 'unpaid':
+        return 'Belum Bayar';
+      case 'pending_confirmation':
+        return 'Menunggu';
+      case 'cancelled':
+        return 'Dibatalkan';
+      default:
+        return status;
+    }
+  }
+
+  IconData _productIcon(String productType) {
+    switch (productType) {
+      case 'ppob':
+        return Icons.bolt_rounded;
+      case 'service':
+        return Icons.miscellaneous_services_rounded;
+      default:
+        return Icons.receipt_rounded;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Daftar Invoice')),
+      backgroundColor: const Color(0xFFF3F4F8),
+      appBar: AppBar(
+        title: const Text('Daftar Invoice'),
+        backgroundColor: _primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: Column(
         children: [
-          SizedBox(
-            height: 48,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              itemCount: _statusOptions.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final option = _statusOptions[index];
-                final selected = _selectedStatus == option['value'];
-                return ChoiceChip(
-                  label: Text(option['label']!),
-                  selected: selected,
-                  onSelected: (_) {
-                    setState(() => _selectedStatus = option['value']!);
-                    _loadInvoices();
-                  },
-                );
-              },
+          Container(
+            color: _primaryColor,
+            padding: const EdgeInsets.only(bottom: 14),
+            child: SizedBox(
+              height: 44,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _statusOptions.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final option = _statusOptions[index];
+                  final selected = _selectedStatus == option['value'];
+                  return ChoiceChip(
+                    label: Text(option['label']!),
+                    selected: selected,
+                    onSelected: (_) {
+                      setState(() => _selectedStatus = option['value']!);
+                      _loadInvoices();
+                    },
+                    backgroundColor: Colors.white,
+                    selectedColor: Colors.white,
+                    labelStyle: TextStyle(
+                      color: _primaryColor,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                    ),
+                    side: BorderSide.none,
+                    showCheckmark: false,
+                    elevation: selected ? 2 : 0,
+                  );
+                },
+              ),
             ),
           ),
-          const Divider(height: 1),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
                     ? Center(child: Text(_errorMessage!))
                     : _invoices.isEmpty
-                        ? const Center(child: Text('Tidak ada invoice'))
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
+                                const SizedBox(height: 12),
+                                Text('Tidak ada invoice', style: TextStyle(color: Colors.grey.shade500)),
+                              ],
+                            ),
+                          )
                         : RefreshIndicator(
                             onRefresh: _loadInvoices,
+                            color: _primaryColor,
                             child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                               itemCount: _invoices.length,
                               itemBuilder: (context, index) {
                                 final inv = _invoices[index];
-                                return ListTile(
-                                  title: Text(inv.invoiceNumber),
-                                  subtitle: Text(inv.clientName ?? inv.clientEmail ?? '-'),
-                                  trailing: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(_formatCurrency(inv.total, inv.currency)),
-                                      Container(
-                                        margin: const EdgeInsets.only(top: 4),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: _statusColor(inv.status).withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          inv.status,
-                                          style: TextStyle(color: _statusColor(inv.status), fontSize: 11),
-                                        ),
+                                final statusColor = _statusColor(inv.status);
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.06),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
                                       ),
                                     ],
                                   ),
-                                  onTap: () async {
-                                    final changed = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => InvoiceDetailScreen(invoice: inv)),
-                                    );
-                                    if (changed == true) _loadInvoices();
-                                  },
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(14),
+                                      onTap: () async {
+                                        final changed = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (_) => InvoiceDetailScreen(invoice: inv)),
+                                        );
+                                        if (changed == true) _loadInvoices();
+                                      },
+                                      child: IntrinsicHeight(
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: [
+                                            Container(
+                                              width: 5,
+                                              decoration: BoxDecoration(
+                                                color: statusColor,
+                                                borderRadius: const BorderRadius.only(
+                                                  topLeft: Radius.circular(14),
+                                                  bottomLeft: Radius.circular(14),
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Padding(
+                                                padding: const EdgeInsets.fromLTRB(12, 14, 14, 14),
+                                                child: Row(
+                                                  children: [
+                                                    Container(
+                                                      width: 44,
+                                                      height: 44,
+                                                      decoration: BoxDecoration(
+                                                        color: _primaryColor.withValues(alpha: 0.08),
+                                                        borderRadius: BorderRadius.circular(12),
+                                                      ),
+                                                      child: Icon(_productIcon(inv.productType), color: _primaryColor, size: 22),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            inv.invoiceNumber,
+                                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: _textDark),
+                                                          ),
+                                                          const SizedBox(height: 3),
+                                                          Text(
+                                                            inv.clientName ?? inv.clientEmail ?? '-',
+                                                            style: const TextStyle(color: _textMedium, fontSize: 13, fontWeight: FontWeight.w500),
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                          const SizedBox(height: 4),
+                                                          Text(
+                                                            _formatDate(inv.createdAt),
+                                                            style: const TextStyle(color: _textLight, fontSize: 11.5),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        Text(
+                                                          _formatCurrency(inv.total, inv.currency),
+                                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _textDark),
+                                                        ),
+                                                        const SizedBox(height: 7),
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                                          decoration: BoxDecoration(
+                                                            color: statusColor,
+                                                            borderRadius: BorderRadius.circular(20),
+                                                          ),
+                                                          child: Text(
+                                                            _statusLabel(inv.status),
+                                                            style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 );
                               },
                             ),

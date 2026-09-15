@@ -4,7 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'services/api_client.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'screens/biometric_unlock_screen.dart';
 
 void main() async {
@@ -28,8 +28,10 @@ class BillingAdminApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'miTRANZ Billing Admin',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+          primaryColor: const Color(0xFF1E3A8A),
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E3A8A)),
           useMaterial3: true,
         ),
         home: const AuthGate(),
@@ -55,6 +57,6 @@ class AuthGate extends StatelessWidget {
       return const BiometricUnlockScreen();
     }
 
-    return auth.isLoggedIn ? const DashboardScreen() : const LoginScreen();
+    return auth.isLoggedIn ? const MainNavigationScreen() : const LoginScreen();
   }
 }
