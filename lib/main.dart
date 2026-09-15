@@ -5,6 +5,7 @@ import 'services/api_client.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/biometric_unlock_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,10 @@ class AuthGate extends StatelessWidget {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
+    }
+
+    if (auth.needsBiometricUnlock) {
+      return const BiometricUnlockScreen();
     }
 
     return auth.isLoggedIn ? const DashboardScreen() : const LoginScreen();

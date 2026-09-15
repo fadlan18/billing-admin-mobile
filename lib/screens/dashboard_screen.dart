@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../services/push_service.dart';
 import 'invoice_list_screen.dart';
+import 'audit_log_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -13,6 +14,9 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+
   @override
   void initState() {
     super.initState();
@@ -20,6 +24,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final pushService = PushService(context.read<ApiClient>().dio);
       pushService.initAndRegister();
     });
+    _loadBiometricStatus();
+  }
+
+  Future<void> _loadBiometricStatus() async {
+    final auth = context.read<AuthProvider>();
+    final available = await auth.isBiometricAvailable();
+    final enabled = await auth.isBiometricEnabled();
+    if (!mounted) return;
+    setState(() {
+      _biometricAvailable = available;
+      _biometricEnabled = enabled;
+    });
+  }
+
+  Future<void> _toggleBiometric(bool value) async {
+    await context.read<AuthProvider>().setBiometricEnabled(value);
+    setState(() => _biometricEnabled = value);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(value ? 'Fingerprint diaktifkan' : 'Fingerprint dinonaktifkan')),
+    );
   }
 
   @override
@@ -33,7 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => context.read<AuthProvider>().logout(),
+            onPressed: () => context.read<AuthProvider>().handleLogoutButtonPressed(),
           ),
         ],
       ),
@@ -59,6 +84,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               },
             ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              icon: const Icon(Icons.history),
+              label: const Text('Audit Log'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuditLogScreen()),
+                );
+              },
+            ),
+            if (_biometricAvailable) ...[
+              const SizedBox(height: 24),
+              SwitchListTile(
+                title: const Text('Login dengan Fingerprint'),
+                subtitle: const Text('Lewati password di kunjungan berikutnya'),
+                value: _biometricEnabled,
+                onChanged: _toggleBiometric,
+              ),
+            ],
           ],
         ),
       ),
