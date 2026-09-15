@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/admin_user.dart';
 import '../services/api_client.dart';
@@ -39,14 +40,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> _fetchCurrentUser() async {
+  /// Ambil data user dari server. Mengembalikan null kalau berhasil,
+  /// atau pesan error kalau gagal. Storage HANYA dihapus jika sesi benar-benar
+  /// tidak valid (401 setelah refresh gagal)  bukan untuk gangguan jaringan biasa.
+  Future<String?> _fetchCurrentUser() async {
     try {
       final response = await _apiClient.dio.get('/api/auth/me');
       _user = AdminUser.fromJson(response.data['user']);
-      return true;
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        // Sesi benar-benar tidak valid (refresh token juga sudah gagal/habis)
+        await _storage.deleteAll();
+        return 'Sesi berakhir, silakan login ulang';
+      }
+      // Gangguan jaringan/server sementara  jangan hapus apa pun
+      return 'Tidak bisa terhubung ke server, periksa koneksi internet';
     } catch (e) {
-      await _storage.deleteAll();
-      return false;
+      return 'Terjadi kesalahan, coba lagi';
     }
   }
 
@@ -54,10 +65,18 @@ class AuthProvider extends ChangeNotifier {
     final success = await _biometricService.authenticate();
     if (!success) return false;
 
-    final fetched = await _fetchCurrentUser();
-    _needsBiometricUnlock = !fetched;
+    final error = await _fetchCurrentUser();
+    if (error != null) {
+      // Tetap di layar biometric supaya bisa dicoba lagi, KECUALI sesi
+      // benar-benar habis (storage sudah kosong, tidak ada token lagi)
+      final stillHasToken = await _storage.read(key: 'access_token') != null;
+      _needsBiometricUnlock = stillHasToken;
+      notifyListeners();
+      return false;
+    }
+    _needsBiometricUnlock = false;
     notifyListeners();
-    return fetched;
+    return true;
   }
 
   Future<String?> login(String email, String password) async {

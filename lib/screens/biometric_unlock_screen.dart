@@ -30,7 +30,11 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
     if (!mounted) return;
     setState(() {
       _isAuthenticating = false;
-      if (!success) _errorMessage = 'Verifikasi gagal, coba lagi';
+      if (!success) {
+        _errorMessage = context.read<AuthProvider>().needsBiometricUnlock
+            ? 'Verifikasi gagal atau koneksi bermasalah, coba lagi'
+            : 'Sesi berakhir, silakan login ulang';
+      }
     });
   }
 
@@ -54,7 +58,11 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
               const SizedBox(height: 32),
               if (_isAuthenticating) const CircularProgressIndicator(),
               if (_errorMessage != null) ...[
-                Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
                 const SizedBox(height: 16),
                 FilledButton.icon(
                   icon: const Icon(Icons.fingerprint),
