@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/admin_user.dart';
 import '../services/api_client.dart';
+import '../services/push_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiClient _apiClient;
@@ -50,6 +51,13 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    try {
+      final pushService = PushService(_apiClient.dio);
+      await pushService.unregisterCurrentToken();
+    } catch (e) {
+      // abaikan, tetap lanjut logout
+    }
+
     final refreshToken = await _storage.read(key: 'refresh_token');
     try {
       await _apiClient.dio.post('/api/auth/logout', data: {
