@@ -1,6 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:dio/dio.dart';
+import '../main.dart';
+import '../models/invoice.dart';
+import 'invoice_service.dart';
+import '../screens/invoice_detail_screen.dart';
 
 class PushService {
   final Dio _dio;
@@ -10,6 +15,7 @@ class PushService {
       FlutterLocalNotificationsPlugin();
 
   static bool _localNotifInitialized = false;
+  static bool _listenersAttached = false;
 
   Future<void> initAndRegister() async {
     final messaging = FirebaseMessaging.instance;
@@ -36,12 +42,50 @@ class PushService {
       _registerToken(newToken);
     });
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      final notification = message.notification;
-      if (notification != null) {
-        _showLocalNotification(notification.title ?? '', notification.body ?? '');
+    if (!_listenersAttached) {
+      _listenersAttached = true;
+
+      // App sedang terbuka (foreground)  tampilkan local notification manual
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        final notification = message.notification;
+        if (notification != null) {
+          _showLocalNotification(notification.title ?? '', notification.body ?? '');
+        }
+      });
+
+      // App dibuka dari background dengan tap notifikasi
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        _handleNotificationTap(message.data);
+      });
+
+      // App dibuka dari kondisi terminated (dari tap notifikasi)
+      final initialMessage = await messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _handleNotificationTap(initialMessage.data);
       }
-    });
+    }
+  }
+
+  void _handleNotificationTap(Map<String, dynamic> data) {
+    final invoiceId = data['invoice_id'] as String?;
+    if (invoiceId == null) return;
+
+    final navState = navigatorKey.currentState;
+    if (navState == null) return;
+
+    () async {
+      try {
+        final service = InvoiceService(_dio);
+        final json = await service.getInvoiceById(invoiceId);
+        if (json == null) return;
+        final invoice = Invoice.fromJson(json);
+        navState.push(
+          MaterialPageRoute(builder: (_) => InvoiceDetailScreen(invoice: invoice)),
+        );
+      } catch (e) {
+        // gagal ambil invoice, abaikan (tidak crash)
+      }
+    }();
   }
 
   Future<void> _initLocalNotifications() async {

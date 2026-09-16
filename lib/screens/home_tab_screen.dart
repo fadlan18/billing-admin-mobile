@@ -17,6 +17,7 @@ class HomeTabScreen extends StatefulWidget {
 class _HomeTabScreenState extends State<HomeTabScreen> {
   Map<String, dynamic>? _stats;
   bool _isLoadingStats = true;
+  bool _statsError = false;
 
   @override
   void initState() {
@@ -29,6 +30,10 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
   }
 
   Future<void> _loadStats() async {
+    setState(() {
+      _isLoadingStats = true;
+      _statsError = false;
+    });
     try {
       final statsService = StatsService(context.read<ApiClient>().dio);
       final data = await statsService.getStats();
@@ -39,7 +44,10 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isLoadingStats = false);
+      setState(() {
+        _isLoadingStats = false;
+        _statsError = true;
+      });
     }
   }
 
@@ -120,38 +128,67 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
                 ),
                 const SizedBox(height: 12),
-                _isLoadingStats
-                    ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
-                    : Row(
-                        children: [
-                          Expanded(
-                            child: _StatCard(
-                              label: 'Total',
-                              value: '${_stats?['total_invoices'] ?? 0}',
-                              icon: Icons.receipt_long_rounded,
-                              color: _primaryColor,
-                            ),
+                if (_isLoadingStats)
+                  const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                else if (_statsError)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3)),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.wifi_off_rounded, color: Colors.grey.shade400, size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Gagal memuat ringkasan',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _StatCard(
-                              label: 'Menunggu',
-                              value: '${_stats?['pending_count'] ?? 0}',
-                              icon: Icons.hourglass_top_rounded,
-                              color: const Color(0xFF2563EB),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _StatCard(
-                              label: 'Lunas',
-                              value: '${_stats?['paid_count'] ?? 0}',
-                              icon: Icons.check_circle_rounded,
-                              color: const Color(0xFF059669),
-                            ),
-                          ),
-                        ],
+                        ),
+                        TextButton(
+                          onPressed: _loadStats,
+                          child: const Text('Coba Lagi', style: TextStyle(color: _primaryColor, fontSize: 12.5)),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          label: 'Total',
+                          value: '${_stats?['total_invoices'] ?? 0}',
+                          icon: Icons.receipt_long_rounded,
+                          color: _primaryColor,
+                        ),
                       ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'Menunggu',
+                          value: '${_stats?['pending_count'] ?? 0}',
+                          icon: Icons.hourglass_top_rounded,
+                          color: const Color(0xFF2563EB),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'Lunas',
+                          value: '${_stats?['paid_count'] ?? 0}',
+                          icon: Icons.check_circle_rounded,
+                          color: const Color(0xFF059669),
+                        ),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 24),
                 const Text(
                   'miTRANZ Billing Admin',

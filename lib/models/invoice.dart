@@ -10,6 +10,8 @@ class Invoice {
   final String? clientName;
   final String? clientEmail;
   final List<dynamic> statusHistory;
+  final List<dynamic> items;
+  final List<dynamic> payments;
 
   Invoice({
     required this.id,
@@ -23,6 +25,8 @@ class Invoice {
     this.clientName,
     this.clientEmail,
     this.statusHistory = const [],
+    this.items = const [],
+    this.payments = const [],
   });
 
   factory Invoice.fromJson(Map<String, dynamic> json) {
@@ -39,6 +43,8 @@ class Invoice {
       clientName: client?['name'] as String?,
       clientEmail: client?['email'] as String?,
       statusHistory: json['status_history'] as List<dynamic>? ?? [],
+      items: json['invoice_items'] as List<dynamic>? ?? [],
+      payments: json['payments'] as List<dynamic>? ?? [],
     );
   }
 }

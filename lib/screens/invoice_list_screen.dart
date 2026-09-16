@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/invoice.dart';
 import '../services/api_client.dart';
 import '../services/invoice_service.dart';
 import 'invoice_detail_screen.dart';
+import '../widgets/state_views.dart';
 
 const _primaryColor = Color(0xFF1E3A8A);
 const _textDark = Color(0xFF111827);
@@ -23,6 +25,8 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   String _selectedStatus = 'all';
+  final _searchController = TextEditingController();
+  Timer? _debounce;
 
   final List<Map<String, String>> _statusOptions = [
     {'value': 'all', 'label': 'Semua'},
@@ -39,13 +43,30 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
     _loadInvoices();
   }
 
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _loadInvoices();
+    });
+  }
+
   Future<void> _loadInvoices() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     try {
-      final data = await _service.getInvoices(status: _selectedStatus);
+      final data = await _service.getInvoices(
+        status: _selectedStatus,
+        search: _searchController.text.trim(),
+      );
       final list = (data['invoices'] as List<dynamic>)
           .map((e) => Invoice.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -128,54 +149,76 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
         children: [
           Container(
             color: _primaryColor,
-            padding: const EdgeInsets.only(bottom: 14),
-            child: SizedBox(
-              height: 44,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _statusOptions.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final option = _statusOptions[index];
-                  final selected = _selectedStatus == option['value'];
-                  return ChoiceChip(
-                    label: Text(option['label']!),
-                    selected: selected,
-                    onSelected: (_) {
-                      setState(() => _selectedStatus = option['value']!);
-                      _loadInvoices();
-                    },
-                    backgroundColor: Colors.white,
-                    selectedColor: Colors.white,
-                    labelStyle: TextStyle(
-                      color: _primaryColor,
-                      fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  style: const TextStyle(color: _textDark),
+                  decoration: InputDecoration(
+                    hintText: 'Cari nomor invoice / nama / email...',
+                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                    prefixIcon: const Icon(Icons.search_rounded, color: _primaryColor),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              _loadInvoices();
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
-                    side: BorderSide.none,
-                    showCheckmark: false,
-                    elevation: selected ? 2 : 0,
-                  );
-                },
-              ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 40,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _statusOptions.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final option = _statusOptions[index];
+                      final selected = _selectedStatus == option['value'];
+                      return ChoiceChip(
+                        label: Text(option['label']!),
+                        selected: selected,
+                        onSelected: (_) {
+                          setState(() => _selectedStatus = option['value']!);
+                          _loadInvoices();
+                        },
+                        backgroundColor: Colors.white,
+                        selectedColor: Colors.white,
+                        labelStyle: TextStyle(
+                          color: _primaryColor,
+                          fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                        ),
+                        side: BorderSide.none,
+                        showCheckmark: false,
+                        elevation: selected ? 2 : 0,
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
-                    ? Center(child: Text(_errorMessage!))
+                    ? ErrorStateView(message: _errorMessage!, onRetry: _loadInvoices)
                     : _invoices.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
-                                const SizedBox(height: 12),
-                                Text('Tidak ada invoice', style: TextStyle(color: Colors.grey.shade500)),
-                              ],
-                            ),
-                          )
+                        ? const EmptyStateView(message: 'Tidak ada invoice')
                         : RefreshIndicator(
                             onRefresh: _loadInvoices,
                             color: _primaryColor,
@@ -304,3 +347,4 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
     );
   }
 }
+
