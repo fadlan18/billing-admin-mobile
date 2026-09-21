@@ -38,6 +38,10 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
     });
   }
 
+  Future<void> _switchToManualLogin() async {
+    await context.read<AuthProvider>().logout();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,6 +72,11 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
                   icon: const Icon(Icons.fingerprint),
                   label: const Text('Coba Lagi'),
                   onPressed: _tryUnlock,
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _switchToManualLogin,
+                  child: const Text('Masuk dengan Password'),
                 ),
               ],
             ],

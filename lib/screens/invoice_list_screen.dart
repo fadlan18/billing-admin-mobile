@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../models/invoice.dart';
 import '../services/api_client.dart';
 import '../services/invoice_service.dart';
-import 'invoice_detail_screen.dart';
 import '../widgets/state_views.dart';
+import 'invoice_detail_screen.dart';
 
 const _primaryColor = Color(0xFF1E3A8A);
 const _textDark = Color(0xFF111827);
@@ -13,7 +13,14 @@ const _textMedium = Color(0xFF4B5563);
 const _textLight = Color(0xFF9CA3AF);
 
 class InvoiceListScreen extends StatefulWidget {
-  const InvoiceListScreen({super.key});
+  final String initialStatus;
+  final bool autoFocusSearch;
+
+  const InvoiceListScreen({
+    super.key,
+    this.initialStatus = 'all',
+    this.autoFocusSearch = false,
+  });
 
   @override
   State<InvoiceListScreen> createState() => _InvoiceListScreenState();
@@ -24,8 +31,9 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
   List<Invoice> _invoices = [];
   bool _isLoading = true;
   String? _errorMessage;
-  String _selectedStatus = 'all';
+  late String _selectedStatus;
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   Timer? _debounce;
 
   final List<Map<String, String>> _statusOptions = [
@@ -39,18 +47,26 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedStatus = widget.initialStatus;
     _service = InvoiceService(context.read<ApiClient>().dio);
     _loadInvoices();
+    if (widget.autoFocusSearch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _searchFocusNode.requestFocus();
+      });
+    }
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   void _onSearchChanged(String value) {
+    setState(() {});
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
       _loadInvoices();
@@ -154,6 +170,7 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
               children: [
                 TextField(
                   controller: _searchController,
+                  focusNode: _searchFocusNode,
                   onChanged: _onSearchChanged,
                   style: const TextStyle(color: _textDark),
                   decoration: InputDecoration(
@@ -347,4 +364,3 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
     );
   }
 }
-

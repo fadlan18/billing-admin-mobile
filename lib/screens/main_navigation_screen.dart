@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'home_tab_screen.dart';
-import 'invoice_list_screen.dart';
 import 'account_screen.dart';
+import 'clients_list_screen.dart';
+
+const _primaryColor = Color(0xFF1E3A8A);
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -15,9 +17,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> _tabs = const [
     HomeTabScreen(),
-    InvoiceListScreen(),
     AccountScreen(),
   ];
+
+  void _openClients() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const ClientsListScreen()));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +31,29 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: _currentIndex,
         children: _tabs,
       ),
+      floatingActionButton: Container(
+        height: 60,
+        width: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1E3A8A), Color(0xFF3B5FCC)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(color: _primaryColor.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: IconButton(
+          onPressed: _openClients,
+          icon: const Icon(Icons.people_alt_rounded, color: Colors.white, size: 28),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
         color: Colors.white,
         elevation: 8,
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -39,17 +66,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               isActive: _currentIndex == 0,
               onTap: () => setState(() => _currentIndex = 0),
             ),
-            _NavItem(
-              icon: Icons.receipt_long_rounded,
-              label: 'Invoice',
-              isActive: _currentIndex == 1,
-              onTap: () => setState(() => _currentIndex = 1),
-            ),
+            const SizedBox(width: 48),
             _NavItem(
               icon: Icons.person_rounded,
               label: 'Akun',
-              isActive: _currentIndex == 2,
-              onTap: () => setState(() => _currentIndex = 2),
+              isActive: _currentIndex == 1,
+              onTap: () => setState(() => _currentIndex = 1),
             ),
           ],
         ),
@@ -73,7 +95,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? const Color(0xFF1E3A8A) : Colors.grey.shade500;
+    final color = isActive ? _primaryColor : Colors.grey.shade500;
 
     return InkWell(
       onTap: onTap,

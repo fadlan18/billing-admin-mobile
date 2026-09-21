@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../services/push_service.dart';
 import '../services/stats_service.dart';
+import 'invoice_list_screen.dart';
 
 const _primaryColor = Color(0xFF1E3A8A);
 
@@ -49,6 +50,15 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
         _statsError = true;
       });
     }
+  }
+
+  void _openInvoices({String status = 'all', bool focusSearch = false}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InvoiceListScreen(initialStatus: status, autoFocusSearch: focusSearch),
+      ),
+    );
   }
 
   @override
@@ -189,16 +199,60 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                       ),
                     ],
                   ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 const Text(
-                  'miTRANZ Billing Admin',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+                  'Akses Cepat',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
+                ),
+                const SizedBox(height: 14),
+                GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.82,
+                  children: [
+                    _QuickAction(
+                      icon: Icons.receipt_long_rounded,
+                      label: 'Semua\nInvoice',
+                      color: _primaryColor,
+                      onTap: () => _openInvoices(),
+                    ),
+                    _QuickAction(
+                      icon: Icons.hourglass_disabled_rounded,
+                      label: 'Belum\nBayar',
+                      color: const Color(0xFFD97706),
+                      onTap: () => _openInvoices(status: 'unpaid'),
+                    ),
+                    _QuickAction(
+                      icon: Icons.hourglass_top_rounded,
+                      label: 'Menunggu\nKonfirmasi',
+                      color: const Color(0xFF2563EB),
+                      badgeCount: _stats?['pending_count'] as int?,
+                      onTap: () => _openInvoices(status: 'pending_confirmation'),
+                    ),
+                    _QuickAction(
+                      icon: Icons.check_circle_rounded,
+                      label: 'Lunas',
+                      color: const Color(0xFF059669),
+                      onTap: () => _openInvoices(status: 'paid'),
+                    ),
+                    _QuickAction(
+                      icon: Icons.cancel_rounded,
+                      label: 'Dibatalkan',
+                      color: const Color(0xFFDC2626),
+                      onTap: () => _openInvoices(status: 'cancelled'),
+                    ),
+                    _QuickAction(
+                      icon: Icons.search_rounded,
+                      label: 'Cari\nInvoice',
+                      color: const Color(0xFF7C3AED),
+                      onTap: () => _openInvoices(focusSearch: true),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Kelola invoice, konfirmasi pembayaran, dan pantau aktivitas billing langsung dari HP.',
-                  style: TextStyle(color: Colors.black54, height: 1.4),
-                ),
               ],
             ),
           ),
@@ -239,6 +293,75 @@ class _StatCard extends StatelessWidget {
           Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 2),
           Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  final int? badgeCount;
+
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.badgeCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final showBadge = badgeCount != null && badgeCount! > 0;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: color, size: 26),
+              ),
+              if (showBadge)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    constraints: const BoxConstraints(minWidth: 20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDC2626),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    child: Text(
+                      badgeCount! > 99 ? '99+' : '${badgeCount}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11.5, color: Color(0xFF374151), fontWeight: FontWeight.w500, height: 1.2),
+          ),
         ],
       ),
     );
